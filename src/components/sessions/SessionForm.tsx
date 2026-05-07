@@ -1,14 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PokerSession } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { createSession } from '@/lib/db';
 
 interface SessionFormProps {
-  initialData?: PokerSession;
-  onSubmit: (data: Omit<PokerSession, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  initialData?: {
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    location?: string;
+    gameType?: string;
+    stakes?: string;
+    buyIn?: number;
+    cashOut?: number;
+    profit?: number;
+    notes?: string;
+  };
+  editMode?: boolean;
+  sessionId?: number;
 }
 
-export default function SessionForm({ initialData, onSubmit }: SessionFormProps) {
+export default function SessionForm({ initialData, editMode = false, sessionId }: SessionFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     date: initialData?.date || new Date().toISOString().split('T')[0],
     startTime: initialData?.startTime || '',
@@ -41,7 +55,18 @@ export default function SessionForm({ initialData, onSubmit }: SessionFormProps)
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      if (editMode && sessionId !== undefined) {
+        // Update existing session (TODO: implement update logic)
+        alert('Edit functionality will be added soon');
+      } else {
+        // Create new session
+        await createSession(formData);
+        // Use window.location for reliable navigation
+        window.location.href = '/sessions';
+      }
+    } catch (error) {
+      console.error('Error saving session:', error);
+      alert('Failed to save session. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,7 +243,7 @@ export default function SessionForm({ initialData, onSubmit }: SessionFormProps)
           disabled={isSubmitting}
           className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
         >
-          {isSubmitting ? 'Saving...' : initialData ? 'Update Session' : 'Create Session'}
+          {isSubmitting ? 'Saving...' : editMode ? 'Update Session' : 'Create Session'}
         </button>
         <a
           href="/sessions"
