@@ -17,121 +17,93 @@ interface SessionData {
   createdAt: string;
 }
 
-export default function SessionForm() {
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    startTime: '',
-    endTime: '',
-    location: '',
-    gameType: '',
-    stakes: '',
-    buyIn: 0,
-    cashOut: 0,
-    profit: 0,
-    notes: '',
-  });
+const INITIAL_FORM_DATA = {
+  date: new Date().toISOString().split('T')[0],
+  startTime: '',
+  endTime: '',
+  location: '',
+  gameType: '',
+  stakes: '',
+  buyIn: 0,
+  cashOut: 0,
+  profit: 0,
+  notes: '',
+};
 
+export default function SessionForm() {
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value,
+      [name]: type === 'number' ? (parseFloat(value) || 0) : value,
     }));
   };
 
-  const handleSave = () => {
-    // Validation
-    if (!formData.location || !formData.gameType || !formData.date) {
-      setMessage({ type: 'error', text: 'Please fill in required fields' });
-      return false;
+  const saveToStorage = (session: SessionData) => {
+    let sessions: SessionData[] = [];
+    const existing = localStorage.getItem('poker-sessions');
+    if (existing) {
+      try {
+        sessions = JSON.parse(existing);
+      } catch (e) {
+        console.error('Failed to parse existing sessions:', e);
+      }
     }
-
-    const session: SessionData = {
-      id: Date.now(),
-      ...formData,
-      createdAt: new Date().toISOString(),
-    };
-
-    try {
-      // Get existing sessions
-      const existing = localStorage.getItem('poker-sessions');
-      const sessions: SessionData[] = existing ? JSON.parse(existing) : [];
-      
-      // Add new session
-      sessions.push(session);
-      
-      // Save back to localStorage
-      localStorage.setItem('poker-sessions', JSON.stringify(sessions));
-      
-      console.log('✅ Saved to localStorage:', session);
-      console.log('Total sessions:', sessions.length);
-      
-      // Verify save
-      const verify = localStorage.getItem('poker-sessions');
-      console.log('Verification - stored data:', verify);
-      
-      setMessage({ type: 'success', text: 'Session saved! Redirecting...' });
-      
-      // Clear form
-      setFormData({
-        date: new Date().toISOString().split('T')[0],
-        startTime: '',
-        endTime: '',
-        location: '',
-        gameType: '',
-        stakes: '',
-        buyIn: 0,
-        cashOut: 0,
-        profit: 0,
-        notes: '',
-      });
-
-      // Redirect after delay
-      setTimeout(() => {
-        window.location.href = '/sessions';
-      }, 1000);
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Save failed:', error);
-      setMessage({ type: 'error', text: 'Failed to save: ' + (error as Error).message });
-      return false;
-    }
+    sessions.push(session);
+    localStorage.setItem('poker-sessions', JSON.stringify(sessions));
+    console.log('✅ Saved to localStorage. Total sessions:', sessions.length);
+    console.log('Stored data:', localStorage.getItem('poker-sessions'));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('📝 Form submitted!');
-    setIsSubmitting(true);
-    setMessage(null);
+  const handleSubmitClick = () => {
+    console.log('🔘 Button clicked!');
     
-    // Small delay to show UI feedback
-    setTimeout(() => {
-      handleSave();
+    // Check required fields
+    if (!formData.date || !formData.gameType || !formData.location || !formData.buyIn || !formData.cashOut) {
+      alert('⚠️ Please fill in all required fields:\n- Date\n- Game Type\n- Location\n- Buy In\n- Cash Out');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const session: SessionData = {
+        id: Date.now(),
+        ...formData,
+        createdAt: new Date().toISOString(),
+      };
+
+      console.log('📝 Data to save:', session);
+      saveToStorage(session);
+
+      alert('✅ Session saved successfully!\n\nID: ' + session.id + '\nProfit: $' + session.profit.toFixed(2) + '\n\nRedirecting to sessions list...');
+
+      // Reset form
+      setFormData(INITIAL_FORM_DATA);
+
+      // Redirect
+      setTimeout(() => {
+        window.location.href = '/sessions';
+      }, 1500);
+
+    } catch (error) {
+      console.error('❌ Save error:', error);
+      alert('❌ Error saving:\n' + (error as Error).message);
+    } finally {
       setIsSubmitting(false);
-    }, 100);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>💡 Tip:</strong> Fill in required fields (*). Profit auto-calculates.
+          <strong>💡 Tip:</strong> Required fields are marked with *
         </p>
       </div>
-
-      {message && (
-        <div className={`p-4 rounded-lg border ${
-          message.type === 'success' 
-            ? 'bg-green-50 border-green-200 text-green-800' 
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          {message.type === 'success' ? '✅ ' : '❌ '}{message.text}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -139,10 +111,9 @@ export default function SessionForm() {
           <input
             type="date"
             name="date"
-            required
             value={formData.date}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
@@ -150,10 +121,9 @@ export default function SessionForm() {
           <label className="block text-sm font-medium text-gray-700 mb-1">Game Type *</label>
           <select
             name="gameType"
-            required
             value={formData.gameType}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           >
             <option value="">Select...</option>
             <option value="Cash Game">Cash Game</option>
@@ -168,11 +138,10 @@ export default function SessionForm() {
           <input
             type="text"
             name="location"
-            required
             value={formData.location}
             onChange={handleChange}
             placeholder="e.g., CTP"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
@@ -184,7 +153,7 @@ export default function SessionForm() {
             value={formData.stakes}
             onChange={handleChange}
             placeholder="$1/$2"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
@@ -195,7 +164,7 @@ export default function SessionForm() {
             name="startTime"
             value={formData.startTime}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
@@ -206,7 +175,7 @@ export default function SessionForm() {
             name="endTime"
             value={formData.endTime}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
@@ -215,12 +184,9 @@ export default function SessionForm() {
           <input
             type="number"
             name="buyIn"
-            required
-            min="0"
-            step="0.01"
             value={formData.buyIn}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
@@ -229,12 +195,9 @@ export default function SessionForm() {
           <input
             type="number"
             name="cashOut"
-            required
-            min="0"
-            step="0.01"
             value={formData.cashOut}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
       </div>
@@ -249,7 +212,6 @@ export default function SessionForm() {
             formData.profit >= 0 ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
           }`}
         />
-        <p className="text-xs text-gray-500 mt-1">Auto-calculated: Cash Out - Buy In</p>
       </div>
 
       <div>
@@ -259,14 +221,14 @@ export default function SessionForm() {
           rows={4}
           value={formData.notes}
           onChange={handleChange}
-          placeholder="Any notes..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       <div className="flex gap-3 pt-4 border-t">
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmitClick}
           disabled={isSubmitting}
           className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold text-lg"
         >
@@ -279,6 +241,6 @@ export default function SessionForm() {
           Cancel
         </a>
       </div>
-    </form>
+    </div>
   );
 }
