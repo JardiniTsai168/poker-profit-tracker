@@ -1,4 +1,12 @@
-# MEMORY.md
+# MEMORY.md - Poker Profit Tracker Agent
+
+## 🔑 GitHub 權限設定
+- **帳號**: JardiniTsai168 (bongzhu@gmail.com)
+- **Token**: [已設定在環境變數]
+- **權限範圍**: repo, read:org, project, gist
+- **Auth Profile**: `github:jardinitsai168`
+- **用途**: 自動修改代碼、創建 PR、部署管理
+
 ## Silent Replies
 Use NO_REPLY ONLY when no user-visible reply is required.
 ⚠️ Rules:

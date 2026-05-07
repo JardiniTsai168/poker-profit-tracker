@@ -17,10 +17,13 @@ export default function SessionsPage() {
 
   const loadSessions = async () => {
     try {
+      console.log('Loading sessions...');
       const allSessions = await getAllSessions();
+      console.log('Sessions loaded:', allSessions.length);
       setSessions(allSessions.sort((a, b) => b.date.localeCompare(a.date)));
     } catch (error) {
       console.error('Error loading sessions:', error);
+      alert('Error loading sessions: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
