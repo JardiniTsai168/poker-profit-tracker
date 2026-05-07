@@ -15,7 +15,6 @@ interface SessionData {
   profit: number;
   notes: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export default function SessionForm() {
@@ -33,7 +32,7 @@ export default function SessionForm() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
+  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -43,7 +42,19 @@ export default function SessionForm() {
     }));
   };
 
-  const saveToLocalStorage = (session: SessionData) => {
+  const handleSave = () => {
+    // Validation
+    if (!formData.location || !formData.gameType || !formData.date) {
+      setMessage({ type: 'error', text: 'Please fill in required fields' });
+      return false;
+    }
+
+    const session: SessionData = {
+      id: Date.now(),
+      ...formData,
+      createdAt: new Date().toISOString(),
+    };
+
     try {
       // Get existing sessions
       const existing = localStorage.getItem('poker-sessions');
@@ -52,88 +63,73 @@ export default function SessionForm() {
       // Add new session
       sessions.push(session);
       
-      // Save back
+      // Save back to localStorage
       localStorage.setItem('poker-sessions', JSON.stringify(sessions));
+      
+      console.log('✅ Saved to localStorage:', session);
+      console.log('Total sessions:', sessions.length);
+      
+      // Verify save
+      const verify = localStorage.getItem('poker-sessions');
+      console.log('Verification - stored data:', verify);
+      
+      setMessage({ type: 'success', text: 'Session saved! Redirecting...' });
+      
+      // Clear form
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        startTime: '',
+        endTime: '',
+        location: '',
+        gameType: '',
+        stakes: '',
+        buyIn: 0,
+        cashOut: 0,
+        profit: 0,
+        notes: '',
+      });
+
+      // Redirect after delay
+      setTimeout(() => {
+        window.location.href = '/sessions';
+      }, 1000);
       
       return true;
     } catch (error) {
-      console.error('Failed to save to localStorage:', error);
+      console.error('❌ Save failed:', error);
+      setMessage({ type: 'error', text: 'Failed to save: ' + (error as Error).message });
       return false;
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setDebugInfo('Validating form...');
-    
-    if (!formData.location || !formData.gameType || !formData.date || !formData.buyIn || !formData.cashOut) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
+    console.log('📝 Form submitted!');
     setIsSubmitting(true);
-
-    try {
-      setDebugInfo('Creating session data...');
-      
-      const session: SessionData = {
-        id: Date.now(), // Simple unique ID
-        ...formData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      setDebugInfo('Saving to localStorage...');
-      
-      // Try localStorage first (more reliable)
-      const success = saveToLocalStorage(session);
-      
-      if (success) {
-        setDebugInfo('✅ Success! ID: ' + session.id);
-        alert('✅ Session created successfully!\nID: ' + session.id);
-        
-        // Clear form
-        setFormData({
-          date: new Date().toISOString().split('T')[0],
-          startTime: '',
-          endTime: '',
-          location: '',
-          gameType: '',
-          stakes: '',
-          buyIn: 0,
-          cashOut: 0,
-          profit: 0,
-          notes: '',
-        });
-
-        // Redirect
-        setTimeout(() => {
-          window.location.href = '/sessions';
-        }, 1000);
-      } else {
-        throw new Error('Failed to save to localStorage');
-      }
-
-    } catch (error) {
-      const errorMsg = (error as Error).message;
-      setDebugInfo('❌ Error: ' + errorMsg);
-      alert('❌ Failed to create session:\n' + errorMsg + '\n\nDebug: ' + debugInfo);
-    } finally {
+    setMessage(null);
+    
+    // Small delay to show UI feedback
+    setTimeout(() => {
+      handleSave();
       setIsSubmitting(false);
-    }
+    }, 100);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-        <p className="text-sm text-yellow-800">
-          <strong>⚠️ Note:</strong> Data is stored locally in your browser. Clearing browser data will delete your sessions.
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-blue-800">
+          <strong>💡 Tip:</strong> Fill in required fields (*). Profit auto-calculates.
         </p>
       </div>
 
-      {debugInfo && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm text-blue-800 font-mono">{debugInfo}</p>
+      {message && (
+        <div className={`p-4 rounded-lg border ${
+          message.type === 'success' 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          {message.type === 'success' ? '✅ ' : '❌ '}{message.text}
         </div>
       )}
 
@@ -146,7 +142,7 @@ export default function SessionForm() {
             required
             value={formData.date}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -157,7 +153,7 @@ export default function SessionForm() {
             required
             value={formData.gameType}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select...</option>
             <option value="Cash Game">Cash Game</option>
@@ -176,7 +172,7 @@ export default function SessionForm() {
             value={formData.location}
             onChange={handleChange}
             placeholder="e.g., CTP"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -188,7 +184,7 @@ export default function SessionForm() {
             value={formData.stakes}
             onChange={handleChange}
             placeholder="$1/$2"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -199,7 +195,7 @@ export default function SessionForm() {
             name="startTime"
             value={formData.startTime}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -210,7 +206,7 @@ export default function SessionForm() {
             name="endTime"
             value={formData.endTime}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -224,7 +220,7 @@ export default function SessionForm() {
             step="0.01"
             value={formData.buyIn}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -238,7 +234,7 @@ export default function SessionForm() {
             step="0.01"
             value={formData.cashOut}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -253,6 +249,7 @@ export default function SessionForm() {
             formData.profit >= 0 ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
           }`}
         />
+        <p className="text-xs text-gray-500 mt-1">Auto-calculated: Cash Out - Buy In</p>
       </div>
 
       <div>
@@ -262,7 +259,8 @@ export default function SessionForm() {
           rows={4}
           value={formData.notes}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          placeholder="Any notes..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -270,11 +268,14 @@ export default function SessionForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold"
+          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold text-lg"
         >
           {isSubmitting ? '⏳ Saving...' : '✓ Create Session'}
         </button>
-        <a href="/sessions" className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg text-center font-semibold hover:bg-gray-300">
+        <a
+          href="/sessions"
+          className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 text-center font-semibold"
+        >
           Cancel
         </a>
       </div>
