@@ -25,33 +25,42 @@ export default function SessionList({ sessions: initialSessions }: SessionListPr
   };
 
   const filteredSessions = sessions.filter(session => {
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      const matchesSearch = 
-        session.location.toLowerCase().includes(searchLower) ||
-        session.gameType.toLowerCase().includes(searchLower) ||
-        (session.notes && session.notes.toLowerCase().includes(searchLower));
-      if (!matchesSearch) return false;
+    try {
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const location = session.location?.toLowerCase() || '';
+        const gameType = session.gameType?.toLowerCase() || '';
+        const notes = session.notes?.toLowerCase() || '';
+        const matchesSearch = location.includes(searchLower) || gameType.includes(searchLower) || notes.includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+      
+      if (filters.dateFrom && (!session.date || session.date < filters.dateFrom)) return false;
+      if (filters.dateTo && (!session.date || session.date > filters.dateTo)) return false;
+      if (filters.gameType && session.gameType !== filters.gameType) return false;
+      if (filters.location && session.location !== filters.location) return false;
+      
+      if (filters.profitFilter && filters.profitFilter !== 'all') {
+        const profit = session.profit || 0;
+        if (filters.profitFilter === 'positive' && profit <= 0) return false;
+        if (filters.profitFilter === 'negative' && profit >= 0) return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error filtering session:', err, session);
+      return false;
     }
-    
-    if (filters.dateFrom && session.date < filters.dateFrom) return false;
-    if (filters.dateTo && session.date > filters.dateTo) return false;
-    if (filters.gameType && session.gameType !== filters.gameType) return false;
-    if (filters.location && session.location !== filters.location) return false;
-    
-    if (filters.profitFilter && filters.profitFilter !== 'all') {
-      if (filters.profitFilter === 'positive' && session.profit <= 0) return false;
-      if (filters.profitFilter === 'negative' && session.profit >= 0) return false;
-    }
-    
-    return true;
   });
 
-  const totalProfit = sessions.reduce((sum, s) => sum + s.profit, 0);
-  const filteredTotalProfit = filteredSessions.reduce((sum, s) => sum + s.profit, 0);
+  const totalProfit = (sessions || []).reduce((sum, s) => sum + (s?.profit || 0), 0);
+  const filteredTotalProfit = (filteredSessions || []).reduce((sum, s) => sum + (s?.profit || 0), 0);
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-gray-400 bg-yellow-50 p-2 rounded">
+        DEBUG: Received {initialSessions?.length || 0} sessions
+      </p>
       <div className="bg-white p-4 rounded-lg shadow">
         <h3 className="text-lg font-semibold mb-4">Filters</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
