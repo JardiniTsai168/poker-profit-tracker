@@ -8,6 +8,7 @@ import { PokerSession } from '@/lib/types';
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<PokerSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSessions();
@@ -15,12 +16,14 @@ export default function SessionsPage() {
 
   const loadSessions = async () => {
     try {
-      console.log('[Sessions] Loading...');
+      console.log('[Sessions] Starting to load...');
       const allSessions = await getAllSessions();
-      console.log('[Sessions] Loaded:', allSessions.length);
+      console.log('[Sessions] Loaded:', allSessions.length, 'sessions');
       setSessions(allSessions.sort((a, b) => b.date.localeCompare(a.date)));
-    } catch (error) {
-      console.error('[Sessions] Error:', error);
+      setError(null);
+    } catch (err) {
+      console.error('[Sessions] Error:', err);
+      setError('Failed to load sessions: ' + (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -30,7 +33,16 @@ export default function SessionsPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <header className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Poker Profit Tracker</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-gray-900">Poker Profit Tracker</h1>
+            <Link
+              href="/settings"
+              className="text-gray-600 hover:text-gray-900 p-2"
+              title="Settings"
+            >
+              ⚙️
+            </Link>
+          </div>
           <Link
             href="/sessions/new"
             className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-semibold transition"
@@ -42,7 +54,20 @@ export default function SessionsPage() {
         <main className="bg-white p-8 rounded-xl shadow-md">
           {isLoading ? (
             <div className="text-center py-16">
-              <p className="text-gray-600">Loading sessions...</p>
+              <div className="text-4xl mb-4">⏳</div>
+              <p className="text-gray-600 font-medium">Loading your sessions...</p>
+              <p className="text-sm text-gray-400 mt-2">Checking database</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <div className="text-4xl mb-4">❌</div>
+              <p className="text-red-600 font-medium mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Refresh Page
+              </button>
             </div>
           ) : sessions.length === 0 ? (
             <div className="text-center py-16">
@@ -61,7 +86,10 @@ export default function SessionsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold mb-4">Your Sessions</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Your Sessions</h2>
+                <p className="text-sm text-gray-500">{sessions.length} session(s)</p>
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -91,9 +119,9 @@ export default function SessionsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <Link
                             href={`/sessions/${session.id}`}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 hover:text-blue-900 font-medium"
                           >
-                            View
+                            View →
                           </Link>
                         </td>
                       </tr>

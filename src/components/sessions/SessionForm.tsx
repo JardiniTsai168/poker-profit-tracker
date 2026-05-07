@@ -4,38 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSession } from '@/lib/db';
 
-interface InitialData {
-  date?: string;
-  startTime?: string;
-  endTime?: string;
-  location?: string;
-  gameType?: string;
-  stakes?: string;
-  buyIn?: number;
-  cashOut?: number;
-  profit?: number;
-  notes?: string;
-}
-
-interface SessionFormProps {
-  initialData?: InitialData;
-  editMode?: boolean;
-  sessionId?: number;
-}
-
-export default function SessionForm({ initialData, editMode = false, sessionId }: SessionFormProps) {
+export default function SessionForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    date: initialData?.date || new Date().toISOString().split('T')[0],
-    startTime: initialData?.startTime || '',
-    endTime: initialData?.endTime || '',
-    location: initialData?.location || '',
-    gameType: initialData?.gameType || '',
-    stakes: initialData?.stakes || '',
-    buyIn: initialData?.buyIn || 0,
-    cashOut: initialData?.cashOut || 0,
-    profit: initialData?.profit || 0,
-    notes: initialData?.notes || '',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '',
+    endTime: '',
+    location: '',
+    gameType: '',
+    stakes: '',
+    buyIn: 0,
+    cashOut: 0,
+    profit: 0,
+    notes: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,6 +28,7 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    console.log('[Form] Changed', name, 'to', value);
     setFormData(prev => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value,
@@ -55,20 +37,23 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Form] Submitting...', formData);
+    
+    if (!formData.location || !formData.gameType || !formData.date) {
+      alert('Please fill in all required fields (Date, Game Type, Location, Buy In, Cash Out)');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      if (editMode && sessionId !== undefined) {
-        // This should be handled by the parent page
-        console.log('Edit not implemented in this component');
-      } else {
-        // Create new session
-        await createSession(formData);
-        // Use window.location for reliable navigation
-        window.location.href = '/sessions';
-      }
+      console.log('[Form] Calling createSession...');
+      const id = await createSession(formData);
+      console.log('[Form] Session created with ID:', id);
+      alert('Session created successfully!');
+      window.location.href = '/sessions';
     } catch (error) {
-      console.error('Error saving session:', error);
-      alert('Failed to save session. Please try again.');
+      console.error('[Form] Error:', error);
+      alert('Failed to create session: ' + (error as Error).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,6 +61,12 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-blue-800">
+          <strong>💡 Tip:</strong> Fill in the required fields (*). Profit is calculated automatically.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -123,7 +114,7 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
             required
             value={formData.location}
             onChange={handleChange}
-            placeholder="e.g., Casino, Home, Online"
+            placeholder="e.g., CTP, Home, PokerStars"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -206,7 +197,7 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
         </div>
       </div>
 
-      <div>
+      <div className="bg-gray-50 p-4 rounded-lg">
         <label htmlFor="profit" className="block text-sm font-medium text-gray-700 mb-1">
           Profit ($)
         </label>
@@ -216,12 +207,13 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
           name="profit"
           readOnly
           value={formData.profit}
-          className={`w-full px-3 py-2 border rounded-md shadow-sm ${
+          className={`w-full px-3 py-2 border rounded-md shadow-sm text-lg font-semibold ${
             formData.profit >= 0 
               ? 'bg-green-50 border-green-300 text-green-800' 
               : 'bg-red-50 border-red-300 text-red-800'
           }`}
         />
+        <p className="text-xs text-gray-500 mt-1">Calculated as: Cash Out - Buy In</p>
       </div>
 
       <div>
@@ -234,22 +226,22 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
           rows={4}
           value={formData.notes}
           onChange={handleChange}
-          placeholder="Any notes about this session..."
+          placeholder="Any notes about this session (opponents, strategy, results)..."
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-3 pt-4 border-t">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 font-semibold text-lg"
         >
-          {isSubmitting ? 'Saving...' : editMode ? 'Update Session' : 'Create Session'}
+          {isSubmitting ? '⏳ Saving...' : '✓ Create Session'}
         </button>
         <a
           href="/sessions"
-          className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center"
+          className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center font-semibold"
         >
           Cancel
         </a>
