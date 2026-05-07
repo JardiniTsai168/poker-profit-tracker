@@ -9,25 +9,42 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<PokerSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
+    console.log('[Sessions] useEffect triggered');
     loadSessions();
   }, []);
 
   const loadSessions = async () => {
     try {
-      console.log('[Sessions] Starting to load...');
+      console.log('[Sessions] Starting loadSessions...');
       const allSessions = await getAllSessions();
-      console.log('[Sessions] Loaded:', allSessions.length, 'sessions');
+      console.log('[Sessions] Got sessions:', allSessions.length);
       setSessions(allSessions.sort((a, b) => b.date.localeCompare(a.date)));
       setError(null);
     } catch (err) {
-      console.error('[Sessions] Error:', err);
-      setError('Failed to load sessions: ' + (err as Error).message);
+      console.error('[Sessions] Error loading:', err);
+      setError('Failed to load: ' + (err as Error).message);
     } finally {
+      console.log('[Sessions] Setting isLoading to false');
       setIsLoading(false);
+      setHasLoaded(true);
     }
   };
+
+  // Show loading for max 2 seconds, then show empty state
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!hasLoaded) {
+        console.log('[Sessions] Timeout - showing empty state');
+        setIsLoading(false);
+      }
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [hasLoaded]);
+
+  console.log('[Sessions] Render - isLoading:', isLoading, 'sessions:', sessions.length);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -63,10 +80,14 @@ export default function SessionsPage() {
               <div className="text-4xl mb-4">❌</div>
               <p className="text-red-600 font-medium mb-4">{error}</p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  setIsLoading(true);
+                  setError(null);
+                  loadSessions();
+                }}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
-                Refresh Page
+                🔄 Try Again
               </button>
             </div>
           ) : sessions.length === 0 ? (
