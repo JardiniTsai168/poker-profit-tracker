@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createSession } from '@/lib/db';
+import { openDB } from 'idb';
 
 export default function SessionForm() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     startTime: '',
@@ -20,6 +18,7 @@ export default function SessionForm() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     const profit = formData.cashOut - formData.buyIn;
@@ -28,7 +27,6 @@ export default function SessionForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    console.log('[Form] Changed', name, 'to', value);
     setFormData(prev => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value,
@@ -37,23 +35,66 @@ export default function SessionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Form] Submitting...', formData);
+    console.log('[Form] Submitting with data:', formData);
     
-    if (!formData.location || !formData.gameType || !formData.date) {
-      alert('Please fill in all required fields (Date, Game Type, Location, Buy In, Cash Out)');
+    if (!formData.location || !formData.gameType || !formData.date || !formData.buyIn || !formData.cashOut) {
+      alert('Please fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
+    setStatus('idle');
+
     try {
-      console.log('[Form] Calling createSession...');
-      const id = await createSession(formData);
-      console.log('[Form] Session created with ID:', id);
-      alert('Session created successfully!');
-      window.location.href = '/sessions';
+      // Direct IndexedDB access
+      const db = await openDB('poker-profit-tracker', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('sessions')) {
+            const store = db.createObjectStore('sessions', {
+              keyPath: 'id',
+              autoIncrement: true,
+            });
+            store.createIndex('by-date', 'date');
+          }
+        },
+      });
+
+      const sessionData = {
+        ...formData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      console.log('[Form] Adding to DB...');
+      const id = await db.add('sessions', sessionData);
+      console.log('[Form] Added with ID:', id);
+
+      setStatus('success');
+      alert('✅ Session created successfully! ID: ' + id);
+      
+      // Clear form
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        startTime: '',
+        endTime: '',
+        location: '',
+        gameType: '',
+        stakes: '',
+        buyIn: 0,
+        cashOut: 0,
+        profit: 0,
+        notes: '',
+      });
+
+      // Redirect after short delay
+      setTimeout(() => {
+        window.location.href = '/sessions';
+      }, 500);
+
     } catch (error) {
       console.error('[Form] Error:', error);
-      alert('Failed to create session: ' + (error as Error).message);
+      setStatus('error');
+      alert('❌ Failed to create: ' + (error as Error).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,7 +104,7 @@ export default function SessionForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <p className="text-sm text-blue-800">
-          <strong>💡 Tip:</strong> Fill in the required fields (*). Profit is calculated automatically.
+          <strong>💡 Tip:</strong> Fill in required fields (*). Profit auto-calculates.
         </p>
       </div>
 
@@ -79,7 +120,7 @@ export default function SessionForm() {
             required
             value={formData.date}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -93,9 +134,9 @@ export default function SessionForm() {
             required
             value={formData.gameType}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">Select game type</option>
+            <option value="">Select...</option>
             <option value="Cash Game">Cash Game</option>
             <option value="Tournament">Tournament</option>
             <option value="Sit & Go">Sit & Go</option>
@@ -114,8 +155,8 @@ export default function SessionForm() {
             required
             value={formData.location}
             onChange={handleChange}
-            placeholder="e.g., CTP, Home, PokerStars"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            placeholder="e.g., CTP, Home"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -129,8 +170,8 @@ export default function SessionForm() {
             name="stakes"
             value={formData.stakes}
             onChange={handleChange}
-            placeholder="e.g., $1/$2, $10 NL"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            placeholder="e.g., $1/$2"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -144,7 +185,7 @@ export default function SessionForm() {
             name="startTime"
             value={formData.startTime}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -158,7 +199,7 @@ export default function SessionForm() {
             name="endTime"
             value={formData.endTime}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -175,7 +216,7 @@ export default function SessionForm() {
             step="0.01"
             value={formData.buyIn}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -192,28 +233,24 @@ export default function SessionForm() {
             step="0.01"
             value={formData.cashOut}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
-        <label htmlFor="profit" className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Profit ($)
         </label>
         <input
           type="number"
-          id="profit"
-          name="profit"
           readOnly
           value={formData.profit}
-          className={`w-full px-3 py-2 border rounded-md shadow-sm text-lg font-semibold ${
-            formData.profit >= 0 
-              ? 'bg-green-50 border-green-300 text-green-800' 
-              : 'bg-red-50 border-red-300 text-red-800'
+          className={`w-full px-3 py-2 border rounded-md text-lg font-semibold ${
+            formData.profit >= 0 ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
           }`}
         />
-        <p className="text-xs text-gray-500 mt-1">Calculated as: Cash Out - Buy In</p>
+        <p className="text-xs text-gray-500 mt-1">Auto-calculated: Cash Out - Buy In</p>
       </div>
 
       <div>
@@ -226,22 +263,34 @@ export default function SessionForm() {
           rows={4}
           value={formData.notes}
           onChange={handleChange}
-          placeholder="Any notes about this session (opponents, strategy, results)..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Any notes..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
+
+      {status === 'success' && (
+        <div className="bg-green-50 border border-green-200 text-green-800 p-3 rounded-lg">
+          ✅ Session saved! Redirecting...
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg">
+          ❌ Error saving session
+        </div>
+      )}
 
       <div className="flex gap-3 pt-4 border-t">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 font-semibold text-lg"
+          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold text-lg"
         >
           {isSubmitting ? '⏳ Saving...' : '✓ Create Session'}
         </button>
         <a
           href="/sessions"
-          className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center font-semibold"
+          className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 text-center font-semibold"
         >
           Cancel
         </a>
