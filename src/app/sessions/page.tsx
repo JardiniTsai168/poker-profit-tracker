@@ -9,7 +9,7 @@ import { PokerSession } from '@/lib/types';
 export default function SessionsPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<PokerSession[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // TEMP: Set to false for testing
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
