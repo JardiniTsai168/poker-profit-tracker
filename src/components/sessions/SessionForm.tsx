@@ -4,19 +4,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSession } from '@/lib/db';
 
+interface InitialData {
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
+  gameType?: string;
+  stakes?: string;
+  buyIn?: number;
+  cashOut?: number;
+  profit?: number;
+  notes?: string;
+}
+
 interface SessionFormProps {
-  initialData?: {
-    date?: string;
-    startTime?: string;
-    endTime?: string;
-    location?: string;
-    gameType?: string;
-    stakes?: string;
-    buyIn?: number;
-    cashOut?: number;
-    profit?: number;
-    notes?: string;
-  };
+  initialData?: InitialData;
   editMode?: boolean;
   sessionId?: number;
 }
@@ -56,8 +58,8 @@ export default function SessionForm({ initialData, editMode = false, sessionId }
     setIsSubmitting(true);
     try {
       if (editMode && sessionId !== undefined) {
-        // Update existing session (TODO: implement update logic)
-        alert('Edit functionality will be added soon');
+        // This should be handled by the parent page
+        console.log('Edit not implemented in this component');
       } else {
         // Create new session
         await createSession(formData);

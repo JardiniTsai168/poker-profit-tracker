@@ -10,7 +10,6 @@ export default function SessionDetailPage() {
   const params = useParams();
   const [session, setSession] = useState<PokerSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<PokerSession>>({});
@@ -23,19 +22,22 @@ export default function SessionDetailPage() {
     try {
       const id = parseInt(params.id as string);
       if (isNaN(id)) {
-        setError('Invalid session ID');
+        alert('Invalid session ID');
+        window.location.href = '/sessions';
         return;
       }
       const data = await getSessionById(id);
       if (!data) {
-        setError('Session not found');
+        alert('Session not found');
+        window.location.href = '/sessions';
         return;
       }
       setSession(data);
-      setFormData(data);
+      setFormData({ ...data });
     } catch (error) {
       console.error('Error loading session:', error);
-      setError('Failed to load session');
+      alert('Failed to load session');
+      window.location.href = '/sessions';
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +48,7 @@ export default function SessionDetailPage() {
     try {
       const id = parseInt(params.id as string);
       await updateSession(id, formData);
-      await loadSession();
+      alert('Session updated successfully!');
       setIsEditing(false);
       window.location.href = `/sessions/${id}`;
     } catch (error) {
@@ -56,18 +58,19 @@ export default function SessionDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this session? This cannot be undone.')) {
-      setIsDeleting(true);
-      try {
-        const id = parseInt(params.id as string);
-        await deleteSession(id);
-        window.location.href = '/sessions';
-      } catch (error) {
-        console.error('Error deleting session:', error);
-        alert('Failed to delete session');
-      } finally {
-        setIsDeleting(false);
-      }
+    if (!confirm('Are you sure you want to delete this session? This cannot be undone.')) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const id = parseInt(params.id as string);
+      await deleteSession(id);
+      window.location.href = '/sessions';
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      alert('Failed to delete session');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -87,13 +90,10 @@ export default function SessionDetailPage() {
     );
   }
 
-  if (error || !session) {
+  if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-red-600">{error || 'Session not found'}</p>
-        <Link href="/sessions" className="text-blue-600 hover:text-blue-800 underline">
-          Back to Sessions
-        </Link>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-600">Session not found</p>
       </div>
     );
   }
@@ -104,6 +104,7 @@ export default function SessionDetailPage() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <button
+              type="button"
               onClick={() => setIsEditing(false)}
               className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mb-4"
             >
@@ -211,12 +212,19 @@ export default function SessionDetailPage() {
               />
             </div>
             <div className="flex gap-3 pt-4">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+              >
                 Save Changes
               </button>
-              <a href={`/sessions/${session.id}`} className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md text-center hover:bg-gray-300">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300"
+              >
                 Cancel
-              </a>
+              </button>
             </div>
           </form>
         </div>
@@ -224,6 +232,7 @@ export default function SessionDetailPage() {
     );
   }
 
+  // View mode
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -233,12 +242,14 @@ export default function SessionDetailPage() {
           </Link>
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={() => setIsEditing(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               Edit
             </button>
             <button
+              type="button"
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
@@ -281,7 +292,7 @@ export default function SessionDetailPage() {
                     const end = new Date(`2000-01-01T${session.endTime}`);
                     const diff = (end.getTime() - start.getTime()) / 1000 / 60;
                     const hours = Math.floor(diff / 60);
-                    const minutes = diff % 60;
+                    const minutes = Math.round(diff % 60);
                     return `${hours}h ${minutes}m`;
                   })()
                 ) : (
