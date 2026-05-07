@@ -6,10 +6,9 @@ import { PokerSession } from '@/lib/types';
 interface SessionFormProps {
   initialData?: PokerSession;
   onSubmit: (data: Omit<PokerSession, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onCancel: () => void;
 }
 
-export default function SessionForm({ initialData, onSubmit, onCancel }: SessionFormProps) {
+export default function SessionForm({ initialData, onSubmit }: SessionFormProps) {
   const [formData, setFormData] = useState({
     date: initialData?.date || new Date().toISOString().split('T')[0],
     startTime: initialData?.startTime || '',
@@ -221,13 +220,12 @@ export default function SessionForm({ initialData, onSubmit, onCancel }: Session
         >
           {isSubmitting ? 'Saving...' : initialData ? 'Update Session' : 'Create Session'}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+        <a
+          href="/sessions"
+          className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center"
         >
           Cancel
-        </button>
+        </a>
       </div>
     </form>
   );

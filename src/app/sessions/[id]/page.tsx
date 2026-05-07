@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import SessionDetail from '@/components/sessions/SessionDetail';
 import { getSessionById, updateSession, deleteSession } from '@/lib/db';
 import { PokerSession } from '@/lib/types';
 
 export default function SessionDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const [session, setSession] = useState<PokerSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadSession();
@@ -42,16 +43,23 @@ export default function SessionDetailPage() {
     const id = parseInt(params.id as string);
     await updateSession(id, data);
     await loadSession();
+    window.location.href = `/sessions/${id}`;
   };
 
   const handleDelete = async () => {
-    const id = parseInt(params.id as string);
-    await deleteSession(id);
-    router.push('/sessions');
-  };
-
-  const handleBack = () => {
-    router.push('/sessions');
+    if (confirm('Are you sure you want to delete this session? This cannot be undone.')) {
+      setIsDeleting(true);
+      try {
+        const id = parseInt(params.id as string);
+        await deleteSession(id);
+        window.location.href = '/sessions';
+      } catch (error) {
+        console.error('Error deleting session:', error);
+        alert('Failed to delete session');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   if (isLoading) {
@@ -64,14 +72,11 @@ export default function SessionDetailPage() {
 
   if (error || !session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-red-600 mb-4">{error || 'Session not found'}</p>
-        <button
-          onClick={() => router.push('/sessions')}
-          className="text-blue-600 hover:text-blue-800"
-        >
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-red-600">{error || 'Session not found'}</p>
+        <Link href="/sessions" className="text-blue-600 hover:text-blue-800 underline">
           Back to Sessions
-        </button>
+        </Link>
       </div>
     );
   }
@@ -82,7 +87,7 @@ export default function SessionDetailPage() {
         session={session}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
-        onBack={handleBack}
+        isDeleting={isDeleting}
       />
     </div>
   );

@@ -3,17 +3,17 @@
 import { useState } from 'react';
 import { PokerSession } from '@/lib/types';
 import SessionForm from './SessionForm';
+import Link from 'next/link';
 
 interface SessionDetailProps {
   session: PokerSession;
   onUpdate: (data: Partial<PokerSession>) => Promise<void>;
   onDelete: () => Promise<void>;
-  onBack: () => void;
+  isDeleting?: boolean;
 }
 
-export default function SessionDetail({ session, onUpdate, onDelete, onBack }: SessionDetailProps) {
+export default function SessionDetail({ session, onUpdate, onDelete, isDeleting }: SessionDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleUpdate = async (data: Omit<PokerSession, 'id' | 'createdAt' | 'updatedAt'>) => {
     await onUpdate(data);
@@ -22,7 +22,6 @@ export default function SessionDetail({ session, onUpdate, onDelete, onBack }: S
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this session? This cannot be undone.')) {
-      setIsDeleting(true);
       await onDelete();
     }
   };
@@ -30,12 +29,13 @@ export default function SessionDetail({ session, onUpdate, onDelete, onBack }: S
   if (isEditing) {
     return (
       <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <Link href={`/sessions/${session.id}`} className="text-blue-600 hover:text-blue-800 flex items-center gap-2">
+            ← Cancel Edit
+          </Link>
+        </div>
         <h2 className="text-2xl font-bold mb-6">Edit Session</h2>
-        <SessionForm
-          initialData={session}
-          onSubmit={handleUpdate}
-          onCancel={() => setIsEditing(false)}
-        />
+        <SessionForm initialData={session} onSubmit={handleUpdate} />
       </div>
     );
   }
@@ -43,12 +43,9 @@ export default function SessionDetail({ session, onUpdate, onDelete, onBack }: S
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={onBack}
-          className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-        >
+        <Link href="/sessions" className="text-blue-600 hover:text-blue-800 flex items-center gap-2">
           ← Back to Sessions
-        </button>
+        </Link>
         <div className="flex gap-3">
           <button
             onClick={() => setIsEditing(true)}
