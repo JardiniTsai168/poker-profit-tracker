@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Button Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 40px;
+      background: #f3f4f6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1f2937;
+      margin-bottom: 30px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:active {
+      background: #1e40af;
+    }
+    .test-results {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-family: monospace;
+    }
+    .test-results p {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Pure HTML Button Test</h1>
+    
+    <p>If you can click these buttons, the issue is with React/Next.js:</p>
+    
+    <button type="button" onclick="alert('Button 1 works!')">
+      Pure HTML Button 1
+    </button>
+    
+    <br><br>
+    
+    <button type="button" id="btn2">
+      Pure HTML Button 2
+    </button>
+    
+    <div class="test-results" id="results">
+      <p><strong>Test Results:</strong></p>
+      <p id="status">Waiting for clicks...</p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('btn2').addEventListener('click', function() {
+      document.getElementById('status').innerHTML = 
+        '✅ Button 2 works! JavaScript is functioning correctly.<br>' +
+        'Time: ' + new Date().toLocaleTimeString();
+    });
+  </script>
+</body>
+</html>
