@@ -1,21 +1,17 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SessionsPage() {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Poker Profit Tracker</h1>
-          <button
-            onClick={() => router.push('/sessions/new')}
+          <Link
+            href="/sessions/new"
             className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-semibold transition"
           >
             + New Session
-          </button>
+          </Link>
         </header>
 
         <main className="bg-white p-8 rounded-xl shadow-md">
@@ -25,13 +21,13 @@ export default function SessionsPage() {
             <p className="text-gray-500 mb-8 max-w-md mx-auto">
               Start tracking your poker profits by creating your first session
             </p>
-            <button
-              onClick={() => router.push('/sessions/new')}
+            <Link
+              href="/sessions/new"
               className="bg-blue-600 text-white px-8 py-3.5 rounded-lg hover:bg-blue-700 font-semibold transition inline-flex items-center gap-2"
             >
               <span>+</span>
               <span>Create Your First Session</span>
-            </button>
+            </Link>
           </div>
         </main>
       </div>
