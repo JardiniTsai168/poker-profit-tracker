@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SessionForm from '@/components/sessions/SessionForm';
 
+// Simple page component to avoid any Client Component issues
 export default function NewSessionPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">

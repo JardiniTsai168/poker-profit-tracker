@@ -58,12 +58,10 @@ export default function SettingsPage() {
   const handleClearData = () => {
     if (confirm('Are you sure you want to clear ALL session data? This cannot be undone.')) {
       if (confirm('Really sure? All your poker sessions will be permanently deleted.')) {
-        localStorage.removeItem('poker-tracker-db');
-        const request = indexedDB.deleteDatabase('poker-profit-tracker');
-        request.onsuccess = () => {
-          alert('All data cleared! Refreshing...');
-          window.location.reload();
-        };
+        localStorage.removeItem('poker-sessions');
+        localStorage.removeItem('poker-tracker-settings');
+        alert('✅ All data cleared!');
+        window.location.reload();
       }
     }
   };
