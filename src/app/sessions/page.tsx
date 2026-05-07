@@ -41,34 +41,6 @@ export default function SessionsPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-gray-600 mb-2">Loading sessions...</p>
-          <p className="text-sm text-gray-400">Checking database...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md mx-auto px-4">
-          <p className="text-red-600 font-bold mb-4">Error Loading Sessions</p>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -82,7 +54,42 @@ export default function SessionsPage() {
           </button>
         </div>
 
-        <SessionList sessions={sessions} />
+        {isLoading && (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Loading sessions...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-600 font-bold mb-2">Error Loading Sessions</p>
+            <p className="text-red-500 text-sm">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
+            >
+              Refresh
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <>
+            {sessions.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg shadow">
+                <p className="text-gray-500 text-lg mb-4">No sessions yet</p>
+                <button
+                  onClick={() => router.push('/sessions/new')}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Create Your First Session
+                </button>
+              </div>
+            ) : (
+              <SessionList sessions={sessions} />
+            )}
+          </>
+        )}
       </div>
     </div>
   );
