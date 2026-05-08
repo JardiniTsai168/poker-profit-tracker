@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react';
 
+// Debug: Check if this runs
+if (typeof window !== 'undefined') {
+  console.log('🔍 Poker Tracker loaded!');
+  alert(' Poker Tracker loaded! Click OK to test.');
+}
+
 interface Session {
   id: number;
   date: string;
