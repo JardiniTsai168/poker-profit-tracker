@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface Session {
   id: number;
@@ -87,13 +87,21 @@ export default function Home() {
     });
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = useCallback((id: number) => {
     if (!confirm('Delete this session?')) return;
     const updated = sessions.filter(s => s.id !== id);
     localStorage.setItem('poker-sessions', JSON.stringify(updated));
     setSessions(updated);
     alert('Session deleted');
-  };
+  }, [sessions]);
+
+  const toggleForm = useCallback(() => {
+    console.log('🔘 Toggle clicked!');
+    setShowForm((prev) => {
+      console.log('showForm was:', prev, 'now:', !prev);
+      return !prev;
+    });
+  }, []);
 
   const totalProfit = sessions.reduce((sum, s) => sum + s.profit, 0);
 
@@ -109,11 +117,7 @@ export default function Home() {
           </div>
           <button
             type="button"
-            onClick={(e) => {
-              console.log('🔘 BUTTON CLICKED!');
-              alert('Button clicked! showForm was: ' + showForm);
-              setShowForm(!showForm);
-            }}
+            onClick={toggleForm}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg"
           >
             {showForm ? '✕ Cancel' : '+ New Session'}
