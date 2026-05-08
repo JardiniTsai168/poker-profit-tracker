@@ -109,7 +109,11 @@ export default function Home() {
           </div>
           <button
             type="button"
-            onClick={() => setShowForm(!showForm)}
+            onClick={(e) => {
+              console.log('🔘 BUTTON CLICKED!');
+              alert('Button clicked! showForm was: ' + showForm);
+              setShowForm(!showForm);
+            }}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg"
           >
             {showForm ? '✕ Cancel' : '+ New Session'}
