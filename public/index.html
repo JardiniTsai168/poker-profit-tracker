@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Poker Profit Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .btn { @apply px-4 py-2 rounded-lg font-semibold transition; }
+    .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700; }
+    .btn-success { @apply bg-green-600 text-white hover:bg-green-700; }
+    .btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+    .btn-secondary { @apply bg-gray-200 text-gray-800 hover:bg-gray-300; }
+    .input { @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500; }
+  </style>
 </head>
 <body class="min-h-screen bg-gray-50 py-8 px-4">
   <div class="max-w-6xl mx-auto">
+    <!-- Header -->
     <header class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">🃏 Poker Profit Tracker</h1>
@@ -13,118 +24,293 @@
           <span id="session-count">0</span> session(s) | Total: $<span id="total-profit">0.00</span>
         </p>
       </div>
-      <button onclick="toggleForm()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg">
-        + New Session
+      <button onclick="showPage('list')" class="btn btn-primary">
+        📊 Sessions
       </button>
     </header>
 
-    <div id="form-container" class="hidden bg-white rounded-xl shadow-lg p-6 mb-8 border-2 border-blue-200">
-      <h2 class="text-2xl font-bold mb-6 text-blue-900">📝 New Session</h2>
-      <form onsubmit="saveSession(event)" class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-semibold mb-1">Date *</label><input type="date" id="f-date" required class="w-full px-4 py-2 border rounded-lg"></div>
-          <div><label class="block text-sm font-semibold mb-1">Game Type *</label><select id="f-gameType" required class="w-full px-4 py-2 border rounded-lg"><option value="">Select</option><option value="Cash Game">Cash Game</option><option value="Tournament">Tournament</option><option value="Sit & Go">Sit & Go</option><option value="Home Game">Home Game</option></select></div>
-          <div><label class="block text-sm font-semibold mb-1">Location *</label><input type="text" id="f-location" required class="w-full px-4 py-2 border rounded-lg"></div>
-          <div><label class="block text-sm font-semibold mb-1">Stakes</label><input type="text" id="f-stakes" class="w-full px-4 py-2 border rounded-lg"></div>
-          <div><label class="block text-sm font-semibold mb-1">Start Time</label><input type="time" id="f-startTime" class="w-full px-4 py-2 border rounded-lg"></div>
-          <div><label class="block text-sm font-semibold mb-1">End Time</label><input type="time" id="f-endTime" class="w-full px-4 py-2 border rounded-lg"></div>
-          <div><label class="block text-sm font-semibold mb-1">Buy In ($) *</label><input type="number" id="f-buyIn" min="0" step="0.01" required class="w-full px-4 py-2 border rounded-lg"></div>
-          <div><label class="block text-sm font-semibold mb-1">Cash Out ($) *</label><input type="number" id="f-cashOut" min="0" step="0.01" required class="w-full px-4 py-2 border rounded-lg"></div>
-        </div>
-        <div><label class="block text-sm font-semibold mb-1">Notes</label><textarea id="f-notes" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea></div>
-        <div class="flex gap-3 pt-4">
-          <button type="submit" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold">💾 Save</button>
-          <button type="button" onclick="toggleForm()" class="flex-1 bg-gray-300 py-3 rounded-lg font-bold">Cancel</button>
-        </div>
-      </form>
-    </div>
+    <!-- Nav -->
+    <nav class="mb-6 flex gap-2">
+      <button onclick="showPage('list')" class="btn btn-secondary">List</button>
+      <button onclick="showPage('new')" class="btn btn-primary">+ New</button>
+      <button onclick="showPage('settings')" class="btn btn-secondary">⚙️ Settings</button>
+    </nav>
 
-    <main class="bg-white rounded-xl shadow-md p-6">
+    <!-- Pages -->
+    <main id="page-container"></main>
+
+    <!-- Footer -->
+    <footer class="mt-8 text-center text-sm text-gray-500">
+      <p>💡 All data stored locally in your browser</p>
+      <p class="mt-1">Version 1.0.0</p>
+    </footer>
+  </div>
+
+  <!-- Templates -->
+  <template id="tpl-list">
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">📊 Your Sessions</h2>
+        <div class="flex gap-2">
+          <input type="text" placeholder="Search..." onkeyup="filterSessions(this.value)" class="input w-48">
+          <select onchange="filterByGame(this.value)" class="input w-40">
+            <option value="">All Games</option>
+            <option value="Cash Game">Cash Game</option>
+            <option value="Tournament">Tournament</option>
+            <option value="Sit & Go">Sit & Go</option>
+            <option value="Home Game">Home Game</option>
+          </select>
+        </div>
+      </div>
       <div id="empty-state" class="text-center py-20">
         <div class="text-8xl mb-6">🀄</div>
         <h2 class="text-3xl font-bold mb-3">No Sessions Yet</h2>
-        <p class="text-gray-500 mb-8">Click "+ New Session" to create your first session</p>
+        <p class="text-gray-500 mb-8">Click "+ New" to create your first session</p>
       </div>
-      <div id="sessions-table" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">📊 Your Sessions</h2>
+      <div id="sessions-table" class="hidden overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50">
-            <tr><th class="px-4 py-3 text-left">Date</th><th class="px-4 py-3 text-left">Game</th><th class="px-4 py-3 text-left">Location</th><th class="px-4 py-3 text-right">Buy In</th><th class="px-4 py-3 text-right">Cash Out</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-right">Actions</th></tr>
+          <thead class="bg-gradient-to-r from-blue-50 to-blue-100">
+            <tr>
+              <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Date</th>
+              <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Game</th>
+              <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Location</th>
+              <th class="px-4 py-3 text-right font-bold text-gray-600 uppercase">Buy In</th>
+              <th class="px-4 py-3 text-right font-bold text-gray-600 uppercase">Cash Out</th>
+              <th class="px-4 py-3 text-right font-bold text-gray-600 uppercase">Profit</th>
+              <th class="px-4 py-3 text-right font-bold text-gray-600 uppercase">Actions</th>
+            </tr>
           </thead>
-          <tbody id="sessions-body" class="divide-y"></tbody>
+          <tbody id="sessions-body" class="divide-y divide-gray-200"></tbody>
         </table>
       </div>
-    </main>
-  </div>
+    </div>
+  </template>
+
+  <template id="tpl-new">
+    <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200">
+      <h2 class="text-2xl font-bold mb-6 text-blue-900">📝 New Session</h2>
+      <form onsubmit="saveSession(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-semibold mb-1">Date *</label><input type="date" name="date" required class="input"></div>
+          <div><label class="block text-sm font-semibold mb-1">Game Type *</label><select name="gameType" required class="input"><option value="">Select</option><option value="Cash Game">Cash Game</option><option value="Tournament">Tournament</option><option value="Sit & Go">Sit & Go</option><option value="Home Game">Home Game</option></select></div>
+          <div><label class="block text-sm font-semibold mb-1">Location *</label><input type="text" name="location" required class="input" placeholder="e.g., CTP"></div>
+          <div><label class="block text-sm font-semibold mb-1">Stakes</label><input type="text" name="stakes" class="input" placeholder="$1/$2"></div>
+          <div><label class="block text-sm font-semibold mb-1">Start Time</label><input type="time" name="startTime" class="input"></div>
+          <div><label class="block text-sm font-semibold mb-1">End Time</label><input type="time" name="endTime" class="input"></div>
+          <div><label class="block text-sm font-semibold mb-1">Buy In ($) *</label><input type="number" name="buyIn" min="0" step="0.01" required class="input"></div>
+          <div><label class="block text-sm font-semibold mb-1">Cash Out ($) *</label><input type="number" name="cashOut" min="0" step="0.01" required class="input"></div>
+        </div>
+        <div><label class="block text-sm font-semibold mb-1">Notes</label><textarea name="notes" rows="3" class="input"></textarea></div>
+        <div class="flex gap-3 pt-4 border-t">
+          <button type="submit" class="flex-1 btn btn-success text-lg">💾 Save Session</button>
+          <button type="button" onclick="showPage('list')" class="flex-1 btn btn-secondary text-lg">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </template>
+
+  <template id="tpl-settings">
+    <div class="space-y-6">
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-2xl font-bold mb-4">⚙️ Settings</h2>
+        <form onsubmit="saveSettings(event)" class="space-y-4">
+          <div><label class="block text-sm font-semibold mb-1">Default Location</label><input type="text" name="defaultLocation" class="input"></div>
+          <div><label class="block text-sm font-semibold mb-1">Default Game Type</label><select name="defaultGameType" class="input"><option value="">None</option><option value="Cash Game">Cash Game</option><option value="Tournament">Tournament</option><option value="Sit & Go">Sit & Go</option><option value="Home Game">Home Game</option></select></div>
+          <div><label class="block text-sm font-semibold mb-1">Currency</label><select name="currency" class="input"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="TWD">TWD (NT$)</option></select></div>
+          <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+        </form>
+      </div>
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <h3 class="text-xl font-bold mb-4 text-red-600">⚠️ Data Management</h3>
+        <button onclick="exportData()" class="btn btn-secondary mb-2">📤 Export JSON</button>
+        <button onclick="document.getElementById('import-file').click()" class="btn btn-secondary mb-2">📥 Import JSON</button>
+        <input type="file" id="import-file" accept=".json" onchange="importData(this)" class="hidden">
+        <button onclick="clearAllData()" class="btn btn-danger">🗑️ Clear All Data</button>
+      </div>
+    </div>
+  </template>
 
   <script>
+    // State
     let sessions = JSON.parse(localStorage.getItem('poker-sessions') || '[]');
-    let showForm = false;
+    let settings = JSON.parse(localStorage.getItem('poker-settings') || '{"defaultLocation":"","defaultGameType":"","currency":"USD"}');
+    let currentPage = 'list';
 
+    // Init
     function init() {
-      render();
+      showPage('list');
+      loadSettings();
     }
 
-    function toggleForm() {
-      showForm = !showForm;
-      document.getElementById('form-container').style.display = showForm ? 'block' : 'none';
+    // Navigation
+    function showPage(page) {
+      currentPage = page;
+      const container = document.getElementById('page-container');
+      const tpl = document.getElementById('tpl-' + page);
+      container.innerHTML = tpl ? tpl.innerHTML : '';
+      
+      if (page === 'list') renderList();
+      if (page === 'settings') loadSettings();
     }
 
+    // List View
+    function renderList() {
+      document.getElementById('session-count').textContent = sessions.length;
+      const total = sessions.reduce((s,x) => s + x.profit, 0);
+      document.getElementById('total-profit').textContent = total.toFixed(2);
+      
+      const empty = document.getElementById('empty-state');
+      const table = document.getElementById('sessions-table');
+      
+      if (sessions.length === 0) {
+        empty.style.display = 'block';
+        table.style.display = 'none';
+      } else {
+        empty.style.display = 'none';
+        table.style.display = 'block';
+        document.getElementById('sessions-body').innerHTML = sessions
+          .sort((a,b) => b.id - a.id)
+          .map(s => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3">${s.date}</td>
+              <td class="px-4 py-3">${s.gameType}</td>
+              <td class="px-4 py-3">${s.location}</td>
+              <td class="px-4 py-3 text-right">$${s.buyIn.toFixed(2)}</td>
+              <td class="px-4 py-3 text-right">$${s.cashOut.toFixed(2)}</td>
+              <td class="px-4 py-3 text-right font-bold ${s.profit >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}">$${s.profit.toFixed(2)}</td>
+              <td class="px-4 py-3 text-right">
+                <button onclick="viewSession(${s.id})" class="text-blue-600 hover:text-blue-900 px-2">👁️ View</button>
+                <button onclick="deleteSession(${s.id})" class="text-red-600 hover:text-red-900 px-2">🗑️</button>
+              </td>
+            </tr>
+          `).join('');
+      }
+    }
+
+    // Save Session
     function saveSession(e) {
       e.preventDefault();
+      const form = e.target;
       const session = {
         id: Date.now(),
-        date: document.getElementById('f-date').value,
-        gameType: document.getElementById('f-gameType').value,
-        location: document.getElementById('f-location').value,
-        stakes: document.getElementById('f-stakes').value,
-        startTime: document.getElementById('f-startTime').value,
-        endTime: document.getElementById('f-endTime').value,
-        buyIn: parseFloat(document.getElementById('f-buyIn').value),
-        cashOut: parseFloat(document.getElementById('f-cashOut').value),
-        notes: document.getElementById('f-notes').value,
+        date: form.date.value,
+        gameType: form.gameType.value,
+        location: form.location.value,
+        stakes: form.stakes.value,
+        startTime: form.startTime.value,
+        endTime: form.endTime.value,
+        buyIn: parseFloat(form.buyIn.value),
+        cashOut: parseFloat(form.cashOut.value),
+        notes: form.notes.value,
       };
       session.profit = session.cashOut - session.buyIn;
       sessions.push(session);
       localStorage.setItem('poker-sessions', JSON.stringify(sessions));
-      alert('✅ Session saved! Profit: $' + session.profit.toFixed(2));
-      showForm = false;
-      document.getElementById('form-container').style.display = 'none';
-      e.target.reset();
-      render();
+      alert('✅ Session saved!\nProfit: $' + session.profit.toFixed(2));
+      form.reset();
+      showPage('list');
     }
 
+    // Delete Session
     function deleteSession(id) {
       if (!confirm('Delete this session?')) return;
       sessions = sessions.filter(s => s.id !== id);
       localStorage.setItem('poker-sessions', JSON.stringify(sessions));
-      render();
+      renderList();
     }
 
-    function render() {
-      document.getElementById('session-count').textContent = sessions.length;
-      document.getElementById('total-profit').textContent = sessions.reduce((s,x) => s + x.profit, 0).toFixed(2);
-      
-      if (sessions.length === 0) {
-        document.getElementById('empty-state').style.display = 'block';
-        document.getElementById('sessions-table').style.display = 'none';
-      } else {
-        document.getElementById('empty-state').style.display = 'none';
-        document.getElementById('sessions-table').style.display = 'block';
-        document.getElementById('sessions-body').innerHTML = sessions.sort((a,b) => b.id - a.id).map(s => 
-          '<tr class="hover:bg-gray-50">' +
-          '<td class="px-4 py-3">' + s.date + '</td>' +
-          '<td class="px-4 py-3">' + s.gameType + '</td>' +
-          '<td class="px-4 py-3">' + s.location + '</td>' +
-          '<td class="px-4 py-3 text-right">$' + s.buyIn.toFixed(2) + '</td>' +
-          '<td class="px-4 py-3 text-right">$' + s.cashOut.toFixed(2) + '</td>' +
-          '<td class="px-4 py-3 text-right font-bold ' + (s.profit >= 0 ? 'text-green-600' : 'text-red-600') + '">$' + s.profit.toFixed(2) + '</td>' +
-          '<td class="px-4 py-3 text-right"><button onclick="deleteSession(' + s.id + ')" class="text-red-600 hover:text-red-900">🗑️ Delete</button></td>' +
-          '</tr>'
-        ).join('');
-      }
+    // View Session (simple alert for now)
+    function viewSession(id) {
+      const s = sessions.find(x => x.id === id);
+      if (!s) return;
+      alert(`📊 Session Details\n\nDate: ${s.date}\nGame: ${s.gameType}\nLocation: ${s.location}\nStakes: ${s.stakes || 'N/A'}\nTime: ${s.startTime || 'N/A'} - ${s.endTime || 'N/A'}\nBuy In: $${s.buyIn.toFixed(2)}\nCash Out: $${s.cashOut.toFixed(2)}\nProfit: $${s.profit.toFixed(2)}\nNotes: ${s.notes || 'None'}`);
     }
 
+    // Settings
+    function loadSettings() {
+      const form = document.querySelector('#tpl-settings form');
+      if (!form) return;
+      form.defaultLocation.value = settings.defaultLocation || '';
+      form.defaultGameType.value = settings.defaultGameType || '';
+      form.currency.value = settings.currency || 'USD';
+    }
+
+    function saveSettings(e) {
+      e.preventDefault();
+      const form = e.target;
+      settings = {
+        defaultLocation: form.defaultLocation.value,
+        defaultGameType: form.defaultGameType.value,
+        currency: form.currency.value,
+      };
+      localStorage.setItem('poker-settings', JSON.stringify(settings));
+      alert('✅ Settings saved!');
+    }
+
+    // Data Management
+    function exportData() {
+      const data = JSON.stringify(sessions, null, 2);
+      const blob = new Blob([data], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'poker-sessions-' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+    }
+
+    function importData(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid format');
+          if (confirm('Import ' + imported.length + ' sessions? This will add to existing data.')) {
+            sessions = sessions.concat(imported);
+            localStorage.setItem('poker-sessions', JSON.stringify(sessions));
+            alert('✅ Imported ' + imported.length + ' sessions!');
+            renderList();
+          }
+        } catch (err) {
+          alert('❌ Import failed: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearAllData() {
+      if (!confirm('⚠️ WARNING: This will delete ALL your sessions!\n\nAre you sure?')) return;
+      if (!confirm('Really sure? This cannot be undone!')) return;
+      sessions = [];
+      settings = {defaultLocation:'', defaultGameType:'', currency:'USD'};
+      localStorage.removeItem('poker-sessions');
+      localStorage.removeItem('poker-settings');
+      alert('✅ All data cleared!');
+      renderList();
+    }
+
+    // Filters
+    function filterSessions(query) {
+      const body = document.getElementById('sessions-body');
+      if (!body) return;
+      const rows = body.querySelectorAll('tr');
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
+      });
+    }
+
+    function filterByGame(game) {
+      const body = document.getElementById('sessions-body');
+      if (!body) return;
+      const rows = body.querySelectorAll('tr');
+      rows.forEach(row => {
+        row.style.display = game ? (row.textContent.includes(game) ? '' : 'none') : '';
+      });
+    }
+
+    // Start
     init();
   </script>
 </body>
